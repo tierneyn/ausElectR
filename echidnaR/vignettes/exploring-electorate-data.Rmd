@@ -1,0 +1,317 @@
+---
+title: "Using echidnaR"
+author: "Di Cook, Heike Hofmann, Rob Hyndman, Ben Marwick, Carson Sievert, Nicholas Tierney, Fang Zhou."
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+
+```{r}
+
+# load_all(pkg = "echidnaR/")
+
+```
+
+`echidnaR` is an R package that makes it easy to look at the data from the 2011 Australian Census.
+
+This vignette (so far) documents how to access the data, and what it is.
+
+The data is loaded as `abs2011`. Let's look take a brief glimpse of the data.
+
+```{r load-read, message=FALSE, error = FALSE}
+library(echidnaR)
+library(dplyr)
+
+glimpse(abs2011)
+
+```
+
+Here we see that we have 150 observations and 28 variables.
+
+Each observation is data pertaining to a particular federal electorate as described by <url to the gov website of electorates>.
+
+Each column is now described here:
+
+```{r make-data-dictionary, include = FALSE}
+
+data_dictionary <- data_frame(
+  Variable = c(
+    "ID",
+    "Name",
+    "State",
+    "Population",
+    "Area",
+    "MedianIncome",
+    "Unemployed",
+    "Bachelor",
+    "Postgraduate",
+    "NoReligion",
+    "Age0_4",
+    "Age5_14",
+    "Age15_19",
+    "Age20_24",
+    "Age25_34",
+    "Age35_44",
+    "Age45_54",
+    "Age55_64",
+    "Age65_74",
+    "Age75_84",
+    "Age85plus",
+    "BornOverseas",
+    "Indigenous",
+    "EnglishOnly",
+    "OtherLanguageHome",
+    "Married",
+    "DeFacto",
+    "FamilyRatio"
+    ), 
+  Details = c(
+    "Commonwealth Electoral District identifier",
+    "Name of electorate",
+    "State containing electorate",
+    "Total population of electorate",
+    "Area of electorate in square kilometres",
+    "Median income of people within electorate",
+    "Percentage of people unemployed",
+    "Percentage of people whose highest qualification is a Bachelor degree",
+    "Percentage of people whose highest qualification is a postgraduate degree",
+    "Percentage of people with no religion.",
+    "Percentage of people aged 0-4.",
+    "Percentage of people aged 5-9.",
+    "Percentage of people aged 15-19.",
+    "Percentage of people aged 20-24.",
+    "Percentage of people aged 25-34.",
+    "Percentage of people aged 35-44.",
+    "Percentage of people aged 45-54.",
+    "Percentage of people aged 55-64.",
+    "Percentage of people aged 65-74.",
+    "Percentage of people aged 75-84.",
+    "Percentage of people aged 85 or higher.",
+    "Percentage of people born outside Australia.",
+    "Percentage of people who are Indigenous",
+    "Percentage of people who speak only English",
+    "Percentage of people who speak a language other than English at home",
+    "Percentage of people who are married",
+    "Percentage of people who are in a de facto marriage",
+    "Total number of families to total number of people (times 100).")
+) # close data_frame
+```
+
+```{r display-data-dictionary, echo = FALSE}
+library(knitr)
+kable(data_dictionary)
+
+```
+
+# General usage
+
+So let's just look at some nice and simple plots.
+
+Let's see what our age population is like
+
+```{r}
+
+library(tidyr)
+library(ggplot2)
+
+abs2011 %>%
+  select(starts_with("Age"), Name) %>%
+  gather(key = "Age",
+         value = "Percent_in_electorate",
+         -Name) %>% 
+  ggplot(data = .,
+         aes(x = Age,
+             y = Percent_in_electorate,
+             fill = Age)) +
+  geom_boxplot() + 
+  coord_flip() + 
+  theme(legend.position = "none")
+             
+
+```
+
+## Unemployment 
+
+```{r}
+
+ggplot(data = abs2011,
+       aes(x = Unemployed)) + 
+  geom_density(fill = "salmon") + 
+  geom_rug(colour = "salmon")
+
+```
+
+
+## Unemployment by state
+
+```{r}
+
+ggplot(data = abs2011,
+       aes(x = reorder(State, -Unemployed),
+           y = Unemployed,
+           fill = State)) + 
+  geom_boxplot() + 
+  labs(x = "State",
+       y = "% Unemployment") + 
+  theme_minimal() + 
+  theme(legend.position = "none") 
+  
+           
+```
+
+
+## Income
+
+```{r}
+
+ggplot(data = abs2011,
+       aes(x = MedianIncome)) + 
+  geom_density(fill = "salmon") + 
+  geom_rug(colour = "salmon") + 
+  theme_minimal()
+  
+```
+
+## Income by State
+
+```{r}
+
+ggplot(data = abs2011,
+       aes(x = reorder(State, -MedianIncome),
+           y = MedianIncome,
+           colour = State)) + 
+  geom_boxplot() + 
+  theme_minimal() + 
+  theme(legend.position = "none") + 
+  labs(x = "State")
+
+```
+
+Just a thought, you can add in the points to get a bit more information on the distribution
+
+```{r}
+
+ggplot(data = abs2011,
+       aes(x = reorder(State, -MedianIncome),
+           y = MedianIncome,
+           colour = State)) + 
+  geom_boxplot() + 
+  geom_jitter(alpha = 0.35, 
+              size = 0.5,
+              width = 0.3) +
+  theme_minimal() + 
+  theme(legend.position = "none") + 
+  labs(x = "State")
+
+```
+
+## Education
+
+### Bachelor
+
+```{r}
+
+ggplot(data = abs2011,
+       aes(x = Bachelor)) +
+  geom_density(fill = "salmon") + 
+  geom_rug(colour = "salmon") + 
+  theme_minimal() + 
+  labs(x = "% of individuals with a Bachelor degree")
+           
+
+```
+
+### Bachelor by state
+
+```{r}
+
+ggplot(data = abs2011,
+       aes(x = reorder(State, -Bachelor),
+           y = Bachelor,
+           colour = State)) +
+  geom_boxplot() +
+  theme_minimal() +
+  labs(x = "State") + 
+  theme(legend.position = "none")
+
+```
+
+### Bachelor and income
+
+```{r}
+
+ggplot(data = abs2011,
+       aes(x = Bachelor,
+           y = MedianIncome)) + 
+  geom_point() + 
+  theme_minimal()
+  
+           
+
+```
+
+
+## Postgraduate
+
+
+```{r}
+
+ggplot(data = abs2011,
+       aes(x = reorder(State, -Postgraduate),
+           y = Postgraduate,
+           colour = State)) +
+  geom_boxplot() +
+  theme_minimal() +
+  labs(x = "State") + 
+  theme(legend.position = "none")
+
+```
+
+### Postgraduate and income
+
+```{r}
+
+ggplot(data = abs2011,
+       aes(x = Postgraduate,
+           y = MedianIncome)) + 
+  geom_point() + 
+  theme_minimal()
+  
+```
+
+### Comparing income across Bachelors and postgraduate
+
+```{r}
+
+abs2011 %>%
+  select(Postgraduate,
+         Bachelor,
+         MedianIncome) %>% 
+  gather(key = "Education",
+         value = "Prop_Educated",
+         -MedianIncome) %>%
+ggplot(data = ,
+       aes(x = Prop_Educated,
+           y = MedianIncome,
+           colour = Education)) + 
+  geom_point() + 
+  geom_smooth() +
+  theme_minimal() 
+  # theme(legend.position = "bottom",
+  #       legend.direction = "vertical")
+
+```
+
+
+# Spatial Mapping
+
+One of the really amazing things about this R package is that it contains the shapefiles of the electorates. These are coming soon!
+
+Some small gripes.
+
+- Variable names: Should they not be capitalised?
+- State names: These are capitalised for ACT and NSW, but not for Qld and Vic

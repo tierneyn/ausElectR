@@ -1,29 +1,48 @@
 library(maptools)
 library(ggplot2)
 
+# read the data from 2013
 shapeFile <- "national-esri-16122011/COM20111216_ELB_region.shp"
 
 xx <- readShapeSpatial(shapeFile)
 #xxx <- thinnedSpatialPoly(as(xx, "SpatialPolygons"),
 #                          tolerance=0.05, minarea=0.001, topologyPreserve=TRUE)
 
-devtools::install_github("ateucher/rmapshaper")
+
 library(rmapshaper)
+# if the rmapshaper library is not installed: 
+#devtools::install_github("ateucher/rmapshaper")
 ?ms_simplify
 
-xxx <- ms_simplify(xx) # use instead of thinnedSpatialPoly
+xxx <- ms_simplify(xx, keep=0.075) # use instead of thinnedSpatialPoly
 
-plot(xx)
-plot(xxx)
+xxx <- ms_simplify(xx, keep=0.025) # 
+xxx <- ms_simplify(xx, keep=0.01) # 
+
+plot(xx) # just checking
+plot(xxx) # do those two plots look the same?
+
 # adjust names here
 nat_data <- xx@data
 nat_data$id <- row.names(nat_data)
-write.csv(nat_data, "National-data.csv", row.names=FALSE)
+write.csv(nat_data, "AECdata/National-data.csv", row.names=FALSE)
 
 # include electorate names and states into the map
 nat_map <- fortify(xxx)
 nat_map <- merge(nat_map, nat_data[,c("id", "STATE", "ELECT_DIV")])
-write.csv(nat_map, "National-map.csv", row.names=FALSE)
+# write.csv messes things up
+nat_map$group <- paste("g",nat_map$group,sep=".")
+nat_map$piece <- paste("p",nat_map$piece,sep=".")
+
+write.table(nat_map, "AECdata/National-map-10.csv", row.names=FALSE, col.names=TRUE, sep=",",
+            quote=TRUE)
+
+####################
+nm <- read.csv("AECdata/National-map-10.csv")
+ggplot(aes(map_id=id), data=nat_data) +
+  geom_map(aes(fill=AREA_SQKM), map=nm) +
+  expand_limits(x=nm$long, y=nm$lat) + 
+  theme_map()
 
 ####################
 # now substitute the data for NSW, WA, and ACT
